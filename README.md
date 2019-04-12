@@ -95,7 +95,7 @@ func azure functionapp publish enviromon-python --build-native-deps
 
 ## Solution components
 
-1. Telemetry Simulator - Local Python and the [Raspberry Pi Simulator](https://azure-samples.github.io/raspberry-pi-web-simulator/#Getstarted)
+1. Telemetry Simulator - Local Python Simulator and the [Raspberry Pi Simulator](https://azure-samples.github.io/raspberry-pi-web-simulator/#Getstarted)
 
 ![raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/media/iot-hub-raspberry-pi-web-simulator/3_banner.png)
 
