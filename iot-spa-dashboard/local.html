@@ -1,0 +1,200 @@
+<html>
+
+<head>
+  <title>Environment Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+  <script>
+    window.apiBaseUrl = 'http://localhost:7071';
+  </script>
+  <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/lib/c3.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .slide-fade-enter-active,
+    .slide-fade-leave-active {
+      transition: all 1s ease;
+    }
+
+    .slide-fade-enter,
+    .slide-fade-leave-to {
+      height: 0px;
+      overflow-y: hidden;
+      opacity: 0;
+    }
+  </style>
+
+  <!-- Favicon Bits -->
+  <link rel="apple-touch-icon" sizes="57x57" href="/img/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/img/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/img/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/img/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/img/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/img/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/img/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/img/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/img/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+
+</head>
+
+<body>
+  <h1>Environmental Data</h1>
+  <div id="lastupdated"></div>
+  <!-- <div id='projection' bind='textContent:name'></div> -->
+
+  <h2>Temperature</h2>
+  <p>&nbsp;</p>
+
+  <div id="barchart"></div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@aspnet/signalr@1.1.2/dist/browser/signalr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.min.js"></script>
+  <script src="/lib/d3.v3.min.js"></script>
+  <script src="/lib/c3.min.js"></script>
+
+  <script>
+    const data = {
+      username: '',
+      newMessage: '',
+      messages: [],
+      ready: false
+    };
+
+    var DATA_POINT_COUNT = 2;
+    var labels = [];
+    var columns = [];
+    var geolocation = [];
+
+    const apiBaseUrl = 'http://localhost:7071'
+
+    const app = new Vue({
+      // el: '#app',
+      // data: data,
+      // methods: {
+      //   sendNewMessage: function () {
+      //     sendMessage(this.username, this.newMessage);
+      //     this.newMessage = '';
+      //   }
+      // }
+    });
+
+    // const apiBaseUrl = prompt('Enter the Azure Function app base URL', window.apiBaseUrl);
+
+    var chart = c3.generate({
+      bindto: '#barchart',
+      data: {
+        columns: [
+        ],
+        type: 'bar'
+      },
+      bar: {
+        // width: {
+        //   ratio: 0.5 // this makes bar width 50% of length between ticks
+        // }
+        // or
+        width: 80 // this makes bar width 100px
+      }
+    });
+
+    function roundToOne(num) {
+      return +(Math.round(num + "e+1") + "e-1");
+    };
+
+    var appendColumn = function (index, label, value) {
+      if (!value) {
+        console.log('value is null ' + label + ' is skipped');
+      } else {
+        columns[index].push(value);
+        if (columns[index].length > DATA_POINT_COUNT) {
+          columns[index].splice(1, 1);
+        }
+      }
+    };
+
+    var addLabel = function (data) {
+      var a = labels.indexOf(data.deviceId);
+      if (a == -1) {
+        labels.push(data.deviceId);
+        a = labels.length - 1;
+        columns[a] = [];
+        columns[a].push(data.deviceId);
+      }
+      return a;
+    };
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${apiBaseUrl}/api`)
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    connection.on('newMessage', newMessage);
+    connection.onclose(() => console.log('disconnected'));
+
+    console.log('connecting...');
+    connection.start()
+      .then(() => {
+        data.ready = true
+        sendMessage('dave', 'getdevicestate')
+      })
+      .catch(console.error);
+
+    function sendMessage(sender, path) {
+      return axios.post(`${apiBaseUrl}/api/${path}`, {
+        sender: sender
+      }).then(resp => resp.data);
+    };
+
+    function newMessage(message) {
+
+      msg = parseMessage(message)
+
+      if (Array.isArray(msg)) {
+        processInitialState(msg)
+      }
+      else {
+        displayItem(msg)
+      }
+    };
+
+    function parseMessage(msg) {
+      if (typeof msg === 'string') {
+        return JSON.parse(msg)
+      } else {
+        return msg
+      }
+    };
+
+    function processInitialState(message) {
+      var labels = [];
+      var columns = [];
+      message.forEach(displayItem);
+    };
+
+    function displayItem(message) {
+      var pos = addLabel(message);
+
+      var e = document.getElementById('lastupdated');
+      e.innerText = Date();
+
+      appendColumn(pos, labels[pos], roundToOne(message.celsius));
+
+      // if (incomingData.timestamp) {
+      //   appendColumn(pos, labels[pos], roundToOne(incomingData.celsius));
+      // } else {
+      //   console.log('bad timestamp is skipped');
+      // }
+      chart.load({
+        columns: columns
+      });
+    };
+
+  </script>
+</body>
+
+</html>

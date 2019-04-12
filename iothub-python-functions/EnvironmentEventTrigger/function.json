@@ -1,0 +1,14 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "type": "eventHubTrigger",
+      "name": "event",
+      "direction": "in",
+      "eventHubName": "image-scanner",
+      "connection": "IoTHubConnectionString",
+      "cardinality": "many",
+      "consumerGroup": "environment"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "bindings": [
+        {
+            "name": "ImageScanner",
+            "type": "table",
+            "connection": "StorageConnectionString",
+            "tableName": "ImageScanner",
+            "direction": "in"
+        }
+    ],
+    "disabled": false
+}
