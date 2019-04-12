@@ -72,22 +72,13 @@ def getCalibrationData(deviceId):
 
 To understand how to create your first Python Azure function then read the "[Create your first Python function in Azure ](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python)" article.
 
-In Bash
+## Triggers and Bindings
 
-```bash
-python3.6 -m venv .env
-source .env/bin/activate
-```
-
-In PowerShell
-```powershell
-py -3.6 -m venv .env
-.env\scripts\activate
-```
+Discuss...
 
 ## Opening Python Project
 
-Be sure that the virtual Python environment you created is active and select in Visual Studio Code
+Be sure that the virtual Python environment you created is active and selected in Visual Studio Code
 
 ## Deploy Function
 
