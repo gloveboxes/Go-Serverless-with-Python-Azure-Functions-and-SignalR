@@ -8,7 +8,7 @@ import os
 # https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/
 # https://docs.microsoft.com/en-us/python/api/azure-cosmosdb-table/azure.cosmosdb.table.tableservice.tableservice?view=azure-python
 
-environmentTable = "Environment"
+deviceStateTable = "DeviceState"
 calibrationTable = "Calibration"
 
 storageConnectionString = os.environ['StorageConnectionString']
@@ -18,11 +18,10 @@ signalrUrl = os.environ['SignalrUrl']
 calibrationDictionary = {}
 
 table_service = TableService(connection_string=storageConnectionString)
-if not table_service.exists(environmentTable):
-    table_service.create_table(environmentTable)
+if not table_service.exists(deviceStateTable):
+    table_service.create_table(deviceStateTable)
 if not table_service.exists(calibrationTable):
     table_service.create_table(calibrationTable)
-
 
 def main(event: func.EventHubEvent):
 
@@ -36,11 +35,11 @@ def main(event: func.EventHubEvent):
 
     # Batch update telemetry state
     for telemetry in stateUpdates:
-        updateEnvironment(telemetry)
+        updateDeviceState(telemetry)
         # notifyClients(signalrUrl, telemetry)
 
 
-def updateEnvironment(telemetry):
+def updateDeviceState(telemetry):
     success = False
     mergeRetry = 0
 
@@ -52,7 +51,7 @@ def updateEnvironment(telemetry):
         try:
             # get existing telemetry entity
             entity = table_service.get_entity(
-                environmentTable, partitionKey, telemetry['DeviceId'])
+                deviceStateTable, partitionKey, telemetry['DeviceId'])
             if 'Count' in entity:
                 count = entity['Count']
         except:
@@ -65,13 +64,13 @@ def updateEnvironment(telemetry):
             try:
                 # try a merge - it will fail if etag doesn't match
                 etag = table_service.merge_entity(
-                    environmentTable, entity, if_match=entity['etag'])
+                    deviceStateTable, entity, if_match=entity['etag'])
                 success = True
             except:
                 success = False
         else:
             try:
-                table_service.insert_entity(environmentTable, entity)
+                table_service.insert_entity(deviceStateTable, entity)
                 success = True
             except:
                 success = False
