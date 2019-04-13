@@ -23,6 +23,7 @@ if not table_service.exists(deviceStateTable):
 if not table_service.exists(calibrationTable):
     table_service.create_table(calibrationTable)
 
+
 def main(event: func.EventHubEvent):
 
     messages = json.loads(event.get_body().decode('utf-8'))
@@ -30,18 +31,16 @@ def main(event: func.EventHubEvent):
 
     # Batch calibrate telemetry
     for telemetry in messages:
-        calibrateTelemetry(telemetry)
-        stateUpdates.append(telemetry)
-
-    # Batch update telemetry state
-    for telemetry in stateUpdates:
-        updateDeviceState(telemetry)
-        # notifyClients(signalrUrl, telemetry)
+        try:
+            updateDeviceState(telemetry)
+        except Exception  as err:
+            logging.info('Exception occurred {0}'.format(err))
 
 
 def updateDeviceState(telemetry):
     success = False
     mergeRetry = 0
+    etag = None
 
     while not success and mergeRetry < 10:
         mergeRetry = mergeRetry + 1
@@ -51,20 +50,26 @@ def updateDeviceState(telemetry):
         try:
             # get existing telemetry entity
             entity = table_service.get_entity(
-                deviceStateTable, partitionKey, telemetry['DeviceId'])
+                deviceStateTable, partitionKey, telemetry.get('deviceId', telemetry.get('DeviceId')))
+            etag = entity['etag']
             if 'Count' in entity:
                 count = entity['Count']
         except:
             count = 0
 
         count = count + 1
+
         updateEntity(telemetry, entity, count)
-        
-        if 'etag' in entity:    # if etag found then record existed
+        calibrateTelemetry(entity)
+
+        if not validateTelemetry(entity):
+            break
+
+        if etag != None:    # if etag found then record existed
             try:
                 # try a merge - it will fail if etag doesn't match
-                etag = table_service.merge_entity(
-                    deviceStateTable, entity, if_match=entity['etag'])
+                table_service.merge_entity(
+                    deviceStateTable, entity, if_match=etag)
                 success = True
             except:
                 success = False
@@ -78,15 +83,18 @@ def updateDeviceState(telemetry):
 
 def updateEntity(telemetry, entity, count):
     entity['PartitionKey'] = partitionKey
-    entity['RowKey'] = telemetry['DeviceId']
-    entity['DeviceId'] = telemetry['DeviceId']
-    entity['Geo'] = telemetry['Geo']
-    entity['Humidity'] = telemetry['Humidity']
-    entity['HPa'] = telemetry['HPa']
-    entity['Celsius'] = telemetry['Celsius']
-    entity['Light'] = telemetry['Light']
-    entity['Id'] = telemetry['Id']
+    entity['RowKey'] = telemetry.get('deviceId', telemetry.get('DeviceId'))
+    entity['DeviceId'] = entity['RowKey']
+    entity['Geo'] = telemetry.get('geo', telemetry.get('geo', 'Sydney'))
+    entity['Humidity'] = telemetry.get('humidity', telemetry.get('Humidity'))
+    entity['hPa'] = telemetry.get('pressure', telemetry.get(
+        'Pressure', telemetry.get('hPa', telemetry.get('HPa'))))
+    entity['Celsius'] = telemetry.get('temperature', telemetry.get(
+        'Temperature', telemetry.get('Celsius')))
+    entity['Light'] = telemetry.get('Light', telemetry.get('light'))
+    entity['Id'] = telemetry.get('messageId', telemetry.get('Id'))
     entity['Count'] = count
+    entity['etag'] = None
 
 
 def notifyClients(signalrUrl, telemetry):
@@ -96,19 +104,36 @@ def notifyClients(signalrUrl, telemetry):
     logging.info(r)
 
 
+def validateTelemetry(telemetry):
+    temperature = telemetry.get('Celsius')
+    pressure = telemetry.get('hPa')
+    humidity = telemetry.get('Humidity')
+
+    if temperature != None and (temperature < -40 or temperature > 140):
+        return False
+    if pressure != None and (pressure < 600 or pressure > 1600):
+        return False
+    if humidity != None and (humidity < 0 or humidity > 100):
+        return False
+    return True
+
+
 def calibrateTelemetry(telemetry):
-    calibrationData = getCalibrationData(telemetry['DeviceId'])
+    calibrationData = getCalibrationData(
+        telemetry.get('deviceId', telemetry.get('DeviceId')))
 
     if calibrationData is not None:
         telemetry["Celsius"] = calibrate(
-            telemetry["Celsius"], calibrationData["TemperatureSlope"], calibrationData["TemperatureYIntercept"])
+            telemetry.get("Celsius"), calibrationData.get("TemperatureSlope"), calibrationData.get("TemperatureYIntercept"))
         telemetry["Humidity"] = calibrate(
-            telemetry["Humidity"], calibrationData["HumiditySlope"], calibrationData["HumidityYIntercept"])
-        telemetry["HPa"] = calibrate(
-            telemetry["HPa"], calibrationData["PressureSlope"], calibrationData["PressureYIntercept"])
+            telemetry.get("Humidity"), calibrationData.get("HumiditySlope"), calibrationData.get("HumidityYIntercept"))
+        telemetry["hPa"] = calibrate(
+            telemetry.get("hPa"), calibrationData.get("PressureSlope"), calibrationData.get("PressureYIntercept"))
 
 
 def calibrate(value, slope, intercept):
+    if value == None or slope == None or intercept == None:
+        return value
     return value * slope + intercept
 
 
