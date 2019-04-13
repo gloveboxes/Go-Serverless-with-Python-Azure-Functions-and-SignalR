@@ -36,25 +36,24 @@ def updateDeviceState(telemetry):
 
         updateEntity(telemetry, entity, count)
         calibrateTelemetry(entity)
-        # calibrator.calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
             break
 
-        if etag is not None:    # if etag found then record existed
-            try:
+        try:
+            if etag is not None:    # if etag found then record existed
                 # try a merge - it will fail if etag doesn't match
                 table_service.merge_entity(
                     deviceStateTable, entity, if_match=etag)
-                break
-            except:
-                pass
-        else:
-            try:
+            else:
                 table_service.insert_entity(deviceStateTable, entity)
-                break
-            except:
-                pass
+            break
+        except:
+            pass
+
+    else:
+        logging.info('Failed to commit update for device {0}'.format(
+            entity.get('DeviceId')))
 ```
 
 ### Telemetry Calibration Optimization
