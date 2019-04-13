@@ -51,9 +51,9 @@ def updateDeviceState(telemetry):
             # get existing telemetry entity
             entity = table_service.get_entity(
                 deviceStateTable, partitionKey, telemetry.get('deviceId', telemetry.get('DeviceId')))
-            etag = entity['etag']
+            etag = entity.get('etag')
             if 'Count' in entity:
-                count = entity['Count']
+                count = entity.get('Count')
         except:
             etag = None
             count = 0
@@ -66,7 +66,7 @@ def updateDeviceState(telemetry):
         if not validateTelemetry(entity):
             break
 
-        if etag != None:    # if etag found then record existed
+        if etag is not None:    # if etag found then record existed
             try:
                 # try a merge - it will fail if etag doesn't match
                 table_service.merge_entity(
@@ -110,11 +110,11 @@ def validateTelemetry(telemetry):
     pressure = telemetry.get('hPa')
     humidity = telemetry.get('Humidity')
 
-    if temperature != None and (temperature < -40 or temperature > 140):
+    if temperature is not None and not -40 <= temperature <= 80:
         return False
-    if pressure != None and (pressure < 600 or pressure > 1600):
+    if pressure is not None and not 600 <= pressure <= 1600:
         return False
-    if humidity != None and (humidity < 0 or humidity > 100):
+    if humidity is not None and not 0 <= humidity <= 100:
         return False
     return True
 
@@ -133,7 +133,7 @@ def calibrateTelemetry(telemetry):
 
 
 def calibrate(value, slope, intercept):
-    if value == None or slope == None or intercept == None:
+    if value is None or slope is None or intercept is None:
         return value
     return value * slope + intercept
 
