@@ -55,6 +55,7 @@ def updateDeviceState(telemetry):
             if 'Count' in entity:
                 count = entity['Count']
         except:
+            etag = None
             count = 0
 
         count = count + 1
@@ -72,13 +73,13 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
                 success = True
             except:
-                success = False
+                pass
         else:
             try:
                 table_service.insert_entity(deviceStateTable, entity)
                 success = True
             except:
-                success = False
+                pass
 
 
 def updateEntity(telemetry, entity, count):
