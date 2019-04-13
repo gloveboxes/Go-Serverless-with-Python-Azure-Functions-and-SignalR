@@ -5,7 +5,7 @@
       "type": "eventHubTrigger",
       "name": "event",
       "direction": "in",
-      "eventHubName": "image-scanner",
+      "eventHubName": "glovebox-iothub",
       "connection": "IoTHubConnectionString",
       "cardinality": "many",
       "consumerGroup": "environment"
