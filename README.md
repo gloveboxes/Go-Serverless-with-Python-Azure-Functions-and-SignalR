@@ -16,46 +16,43 @@ I wanted to maintain a count in the Device State table of the number of times a 
 
 ```python
 def updateDeviceState(telemetry):
-    success = False
     mergeRetry = 0
-    etag = None
 
-    while not success and mergeRetry < 10:
-        mergeRetry = mergeRetry + 1
-        count = 0
-        entity = {}
+    while mergeRetry < 10:
+        mergeRetry += 1
 
         try:
             # get existing telemetry entity
             entity = table_service.get_entity(
                 deviceStateTable, partitionKey, telemetry.get('deviceId', telemetry.get('DeviceId')))
-            etag = entity['etag']
-            if 'Count' in entity:
-                count = entity['Count']
+            etag = entity.get('etag')
+            count = entity.get('Count', 0)
         except:
+            entity = {}
             etag = None
             count = 0
 
-        count = count + 1
+        count += 1
 
         updateEntity(telemetry, entity, count)
         calibrateTelemetry(entity)
+        # calibrator.calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
             break
 
-        if etag != None:    # if etag found then record existed
+        if etag is not None:    # if etag found then record existed
             try:
                 # try a merge - it will fail if etag doesn't match
                 table_service.merge_entity(
                     deviceStateTable, entity, if_match=etag)
-                success = True
+                break
             except:
                 pass
         else:
             try:
                 table_service.insert_entity(deviceStateTable, entity)
-                success = True
+                break
             except:
                 pass
 ```

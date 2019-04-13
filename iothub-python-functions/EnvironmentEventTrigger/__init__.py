@@ -4,6 +4,7 @@ from azure.cosmosdb.table.tableservice import TableService
 import requests
 import json
 import os
+# import calibrate
 
 # https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/
 # https://docs.microsoft.com/en-us/python/api/azure-cosmosdb-table/azure.cosmosdb.table.tableservice.tableservice?view=azure-python
@@ -12,7 +13,7 @@ deviceStateTable = "DeviceState"
 calibrationTable = "Calibration"
 
 storageConnectionString = os.environ['StorageConnectionString']
-partitionKey = os.environ['PartitionKey']
+partitionKey = os.environ.get('PartitionKey', 'Environment')
 signalrUrl = os.environ['SignalrUrl']
 
 calibrationDictionary = {}
@@ -23,6 +24,7 @@ if not table_service.exists(deviceStateTable):
 if not table_service.exists(calibrationTable):
     table_service.create_table(calibrationTable)
 
+# calibrator = calibrate.Calibrate(table_service, calibrationTable, partitionKey)
 
 def main(event: func.EventHubEvent):
 
@@ -33,35 +35,32 @@ def main(event: func.EventHubEvent):
     for telemetry in messages:
         try:
             updateDeviceState(telemetry)
-        except Exception  as err:
+        except Exception as err:
             logging.info('Exception occurred {0}'.format(err))
 
 
 def updateDeviceState(telemetry):
-    success = False
     mergeRetry = 0
-    etag = None
 
-    while not success and mergeRetry < 10:
-        mergeRetry = mergeRetry + 1
-        count = 0
-        entity = {}
+    while mergeRetry < 10:
+        mergeRetry += 1
 
         try:
             # get existing telemetry entity
             entity = table_service.get_entity(
                 deviceStateTable, partitionKey, telemetry.get('deviceId', telemetry.get('DeviceId')))
             etag = entity.get('etag')
-            if 'Count' in entity:
-                count = entity.get('Count')
+            count = entity.get('Count', 0)
         except:
+            entity = {}
             etag = None
             count = 0
 
-        count = count + 1
+        count += 1
 
         updateEntity(telemetry, entity, count)
         calibrateTelemetry(entity)
+        # calibrator.calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
             break
@@ -71,13 +70,13 @@ def updateDeviceState(telemetry):
                 # try a merge - it will fail if etag doesn't match
                 table_service.merge_entity(
                     deviceStateTable, entity, if_match=etag)
-                success = True
+                break
             except:
                 pass
         else:
             try:
                 table_service.insert_entity(deviceStateTable, entity)
-                success = True
+                break
             except:
                 pass
 
@@ -86,7 +85,7 @@ def updateEntity(telemetry, entity, count):
     entity['PartitionKey'] = partitionKey
     entity['RowKey'] = telemetry.get('deviceId', telemetry.get('DeviceId'))
     entity['DeviceId'] = entity['RowKey']
-    entity['Geo'] = telemetry.get('geo', telemetry.get('geo', 'Sydney'))
+    entity['Geo'] = telemetry.get('geo', telemetry.get('Geo', 'Sydney'))
     entity['Humidity'] = telemetry.get('humidity', telemetry.get('Humidity'))
     entity['hPa'] = telemetry.get('pressure', telemetry.get(
         'Pressure', telemetry.get('hPa', telemetry.get('HPa'))))
@@ -95,6 +94,7 @@ def updateEntity(telemetry, entity, count):
     entity['Light'] = telemetry.get('Light', telemetry.get('light'))
     entity['Id'] = telemetry.get('messageId', telemetry.get('Id'))
     entity['Count'] = count
+    entity['Schema'] = 1
     entity['etag'] = None
 
 
