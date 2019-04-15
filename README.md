@@ -1,22 +1,52 @@
-# Create Python Virtual Environment
-
-## Creating your first Python Azure Function
+# Building a Serverless IoT Solution with Python Azure Functions and SignalR
 
 ## Solution overview
 
 ![solution overview](./docs/resources/solution-architecture.png)
 
+Follow me on [Twitter](https://twitter.com/dglover)
+
+[Project Source Code](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR)
+
+### Azure Services
+
+The following services are required and available in free tiers.
+
+1. [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover)
+2. [Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions?WT.mc_id=devto-blog-dglover)
+3. [Azure SignalR](https://docs.microsoft.com/en-us/azure/azure-signalr?WT.mc_id=devto-blog-dglover)
+4. [Azure Storage](https://docs.microsoft.com/en-us/azure/storage?WT.mc_id=devto-blog-dglover)
+5. [Azure Storage Static Websites](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=devto-blog-dglover)
+
 ## Developing Python Azure Functions
 
-To understand how to create your first Python Azure function then read the "[Create your first Python function in Azure ](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python)" article.
+## Where to Start
+
+To understand how Python Azure Functions work then review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-functions-python-worker) guide. There is information the on the following topics:
+
+- [Create your first Python function](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python?WT.mc_id=devto-blog-dglover)
+- [Developer guide](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-python?WT.mc_id=devto-blog-dglover)
+- [Binding API reference](https://docs.microsoft.com/en-us/python/api/azure-functions/azure.functions?view=azure-python&WT.mc_id=devto-blog-dglover)
+- [Develop using VS Code](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-vs-code?WT.mc_id=devto-blog-dglover)
+- [Create a Python Function on Linux using a custom docker image](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-linux-custom-image?WT.mc_id=devto-blog-dglover)
+
+## Solution Components
+
+1. Python Azure Functions (included in this GitHub repo). This Function processes batches or telemetry, calibrations the telemetry, and updates the Device State Azure Storage Table, and then passes the telemetry to the Azure SignalR service for near real-time web client update.
+
+2. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available and included in this GitHub repository). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web dashboard.
+
+3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html) (Included in this GitHub repo). This is a Single Page Web App that is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is classified.html. Be sure to modify the "apiBaseUrl" url to point your instance of the Azure SignalR Azure Function you install.
 
 ## Architectural Considerations
 
 ### Optimistic Concurrency
 
-I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Depending on the workload, Azure Functions can auto scale the number of instances running and there is a possibility of data corruption. I could have used a transactional data store, but for this solution, that would be overkill and expensive. So I have implemented Azure Storage/CosmosDB Optimistic Concurrency to deal with the possibility that two processes may attempt to update the same storage entity at the same time. This works well if there is a good spread of telemetry from a different device, but not so well if a lot of updates to the same entity.
+First up, it is useful to understand [Event Hub Trigger Scaling](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-iot#trigger---scaling?WT.mc_id=devto-blog-dglover) and how additional function instances can be started to process events.
 
-[Managing Concurrency in Microsoft Azure Storage](https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/)
+I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2/), to check if another function instance has changed the entity before attempting to do an update/merge.
+
+The 'updateDeviceState' first checks to see if the entity is already in the storage table. If the entity exists the 'etag' is used by the call to merge_entity. The call to merge_entity succeeds if the etag matches the entity in storage.
 
 ```python
 def updateDeviceState(telemetry):
@@ -39,7 +69,7 @@ def updateDeviceState(telemetry):
         count += 1
 
         updateEntity(telemetry, entity, count)
-        calibrateTelemetry(entity)
+        calibrator.calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
             break
@@ -51,7 +81,7 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
             else:
                 table_service.insert_entity(deviceStateTable, entity)
-                
+
             return entity
 
         except:
@@ -64,7 +94,7 @@ def updateDeviceState(telemetry):
 
 ### Telemetry Calibration Optimization
 
-Rather than loading all the calibration data in with data binding when the Azure Function starts I lazy load calibration data into a Python dictionary.
+You can either calibrate data on the device or in the cloud. I prefer to calibrate cloud-side. The calibration data could be loaded with Azure Function Data Binding but prefer to lazy load the calibration data. There could be a lot of calibration data so it does not make sense to load it all at once when the function is triggered.
 
 ```python
 def getCalibrationData(deviceId):
@@ -80,7 +110,7 @@ def getCalibrationData(deviceId):
 
 ### Telemetry Validation
 
-And all IoT solutions should be validating data at the very least to check within sensible ranges to allow for fault sensors and more.
+IoT solutions should be validating data to check telemetry is within sensible ranges to allow for fault sensors or more.
 
 ```python
 def validateTelemetry(telemetry):
@@ -97,28 +127,170 @@ def validateTelemetry(telemetry):
     return True
 ```
 
+## Set Up Overview
 
+This lab uses free of charge services on Azure. The following need to be set up:
 
-## Triggers and Bindings
+1. Azure IoT Hub and and Azure IoT Device
+2. Azure SignalR Service
+3. Deploy the Python Azure Function
+4. Deploy the SignalR .NET Core Azure Function
 
-Discuss...
+### Step 1: Follow the Raspberry Pi Simulator Guide to set up Azure IoT Hub
 
-## Opening Python Project
+**While in Python Azure Functions are in preview they are available in limited locations. For now, 'westus', and 'westeurope'. I recommend you create all the project resources in one of these locations.**
 
-Be sure that the virtual Python environment you created is active and selected in Visual Studio Code
-
-## Deploy Function
-
-func azure functionapp publish enviromon-python --build-native-deps
-
-## Solution components
-
-1. Telemetry Simulator - Local Python Simulator and the [Raspberry Pi Simulator](https://azure-samples.github.io/raspberry-pi-web-simulator/#Getstarted)
+[Setting up the Raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-raspberry-pi-web-simulator-get-started&WT.mc_id=devto-blog-dglover)
 
 ![raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/media/iot-hub-raspberry-pi-web-simulator/3_banner.png)
 
-2. Python Azure Functions (included in this GitHub repo). This Function processes batches or telemetry, calibrations the telemetry, and updates the Device State Azure Storage Table, and then passes the telemetry to the Azure SignalR service for near real-time web client update.
+### Step 2: Create an Azure Resource Group
 
-3. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available and included in this GitHub repository). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web dashboard (https://enviro.z8.web.core.windows.net/image.html).
+[az group create](https://docs.microsoft.com/en-us/cli/azure/group?view=azure-cli-latest#az-group-create&WT.mc_id=devto-blog-dglover)
 
-4. [Web Dashboard](https://enviro.z8.web.core.windows.net/classified.html) (Included in this GitHub repo). This is a Single Page Web App that is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is classified.html. Be sure to modify the "apiBaseUrl" url to point your instance of the Azure SignalR Azure Function you install.
+```bash
+az group create -l westus -n enviromon-python
+```
+
+### Step 3: Create a Azure Signal Service
+
+- [az signalr create](https://docs.microsoft.com/en-us/cli/azure/signalr?view=azure-cli-latest#az-signalr-create&WT.mc_id=devto-blog-dglover) creates the Azure SignalR Service
+- [az signalr key list](https://docs.microsoft.com/en-us/cli/azure/ext/signalr/signalr/key?view=azure-cli-latest#ext-signalr-az-signalr-key-list&WT.mc_id=devto-blog-dglover) returns the connection string you need for the SignalR .NET Core Azure Function.
+
+```bash
+az signalr create -n <Your SignalR Name> -g enviromon-python --sku Free_DS2 --unit-count 1
+az signalr key list -n <Your SignalR Name> -g enviromon-python
+```
+
+### Step 4: Create a Storage Account
+
+[az storage account create](https://docs.microsoft.com/en-us/cli/azure/storage/account?view=azure-cli-latest#az-storage-account-create&WT.mc_id=devto-blog-dglover)
+
+```bash
+az storage account create -n enviromonstorage -g enviromon-python -l westus --sku Standard_LRS --kind StorageV2
+```
+
+### Step 5: Clone the project
+
+```bash
+git clone https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR.git
+```
+
+### Step 6: Deploy the SignalR .NET Core Azure Function
+
+```bash
+cd  Go-Serverless-with-Python-Azure-Functions-and-SignalR
+
+cd dotnet-signalr-functions
+
+cp local.settings.sample.json local.settings.json
+
+code .
+```
+
+### Step 7: Update the local.settings.json
+
+```json
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "<The Storage Connection String for enviromonstorage>",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+        "StorageConnectionString":"<The Storage Connection String for enviromonstorage>",
+        "AzureSignalRConnectionString": "<The SignalR Coonection String from Step 3>"
+    },
+    "Host": {
+        "LocalHttpPort": 7071,
+        "CORS": "http://127.0.0.1:5500,http://localhost:5500,https://azure-samples.github.io",
+        "CORSCredentials": true
+    }
+}
+```
+
+### Step 8: Deploy the SignalR .NET Core Azure Function
+
+1. Open a terminal windows in Visual Studio. From main menu, select View -> Terminal
+2. Deploy the Azure Function
+
+```bash
+func azure functionapp publish --publish-local-settings <Your SignalR Function Name>
+func azure functionapp list-functions <Your SignalR Function Name>
+```
+
+    Functions in mysignal-signalr:
+        getdevicestate - [httpTrigger]
+            Invoke url: https://mysignal-signalr.azurewebsites.net/api/getdevicestate
+
+        negotiate - [httpTrigger]
+            Invoke url: https://mysignal-signalr.azurewebsites.net/api/negotiate
+
+        SendSignalrMessage - [httpTrigger]
+            Invoke url: https://mysignal-signalr.azurewebsites.net/api/sendsignalrmessage?code=DpfBdeb9TV1FCXXXXXXXXXXXXX9Mo8P8FPGLia7LbAtZ5VMArieo20Q==
+
+** You need copy and paste the SendSignalrMessage Invoke url somewhere handy.
+
+### Step 9: Open the Python Functions Project with Visual Studio Code
+
+Change to the directory where you cloned to the project to, the change to the iothub-python-functions directory, then start Visual Studio Code.
+
+From Terminal on linux and macOS, or Powershell on Windows.
+
+```bash
+
+cd  Go-Serverless-with-Python-Azure-Functions-and-SignalR
+
+cd iothub-python-functions
+
+cp local.settings.sample.json local.settings.json
+
+code .
+```
+
+### Step 10: Update the local.settings.json
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "<The Storage Connection String for enviromonstorage>",
+    "IoTHubConnectionString": "<The IoT Hub Connection String>",
+    "PartitionKey": "<Storage Partition Key - arbitrary - for example the name of city/town>",
+    "StorageConnectionString": "<The Storage Connection String for enviromonstorage>",
+    "SignalrUrl": "<SendSignalrMessage Invoke URL>"
+  }
+}
+```
+
+### Step 11: Deploy the Python Azure Function
+
+1. Open a terminal windows in Visual Studio. From main menu, select View -> Terminal
+2. Deploy the Azure Function
+
+```bash
+func azure functionapp publish enviromon-python --publish-local-settings --build-native-deps  
+```
+
+### Step 12: Enable Static Websites for Azure Storage
+
+The Dashboard project contains the Static Website project.
+
+Follow the guide for [Static website hosting in Azure Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=devto-blog-dglover).
+
+Copy the contents of the dashboard project to the static website.
+
+### Step 13: Enable CORS for the SignalR .NET Core Azure Function
+
+[az functionapp cors add](https://docs.microsoft.com/en-us/cli/azure/functionapp/cors?view=azure-cli-latest#az-functionapp-cors-add&WT.mc_id=devto-blog-dglover)
+
+```bash
+az functionapp cors add -g enviromon-python -n <Your SignalR Function Name> --allowed-origins <https://my-static-website-url>
+```
+
+### Step 14: Start the Dashboard
+
+From your web browser, navigate to https://your-start-web-site/enviromon.html
+
+The telemetry from the Raspberry Pi Simulator will be displayed on the dashboard.
+
+![dashboard](./docs/resources/dashboard.png)

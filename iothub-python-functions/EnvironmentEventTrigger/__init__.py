@@ -4,7 +4,7 @@ from azure.cosmosdb.table.tableservice import TableService
 import requests
 import json
 import os
-# import calibrate
+from ..SharedCode import calibrate
 
 # https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/
 # https://docs.microsoft.com/en-us/python/api/azure-cosmosdb-table/azure.cosmosdb.table.tableservice.tableservice?view=azure-python
@@ -13,18 +13,14 @@ deviceStateTable = "DeviceState"
 calibrationTable = "Calibration"
 
 storageConnectionString = os.environ['StorageConnectionString']
-partitionKey = os.environ.get('PartitionKey', 'Environment')
+partitionKey = os.environ.get('PartitionKey', 'Sydney')
 signalrUrl = os.environ['SignalrUrl']
-
-calibrationDictionary = {}
 
 table_service = TableService(connection_string=storageConnectionString)
 if not table_service.exists(deviceStateTable):
     table_service.create_table(deviceStateTable)
-if not table_service.exists(calibrationTable):
-    table_service.create_table(calibrationTable)
 
-# calibrator = calibrate.Calibrate(table_service, calibrationTable, partitionKey)
+calibrator = calibrate.Calibrate(table_service, calibrationTable, partitionKey)
 
 
 def main(event: func.EventHubEvent):
@@ -66,7 +62,7 @@ def updateDeviceState(telemetry):
         count += 1
 
         updateEntity(telemetry, entity, count)
-        calibrateTelemetry(entity)
+        calibrator.calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
             break
@@ -78,7 +74,7 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
             else:
                 table_service.insert_entity(deviceStateTable, entity)
-                
+
             return entity
 
         except:
@@ -130,33 +126,3 @@ def validateTelemetry(telemetry):
     if humidity is not None and not 0 <= humidity <= 100:
         return False
     return True
-
-
-def calibrateTelemetry(telemetry):
-    calibrationData = getCalibrationData(
-        telemetry.get('deviceId', telemetry.get('DeviceId')))
-
-    if calibrationData is not None:
-        telemetry["Celsius"] = calibrate(
-            telemetry.get("Celsius"), calibrationData.get("TemperatureSlope"), calibrationData.get("TemperatureYIntercept"))
-        telemetry["Humidity"] = calibrate(
-            telemetry.get("Humidity"), calibrationData.get("HumiditySlope"), calibrationData.get("HumidityYIntercept"))
-        telemetry["hPa"] = calibrate(
-            telemetry.get("hPa"), calibrationData.get("PressureSlope"), calibrationData.get("PressureYIntercept"))
-
-
-def calibrate(value, slope, intercept):
-    if value is None or slope is None or intercept is None:
-        return value
-    return value * slope + intercept
-
-
-def getCalibrationData(deviceId):
-    if deviceId not in calibrationDictionary:
-        try:
-            calibrationDictionary[deviceId] = table_service.get_entity(
-                calibrationTable, partitionKey, deviceId)
-        except:
-            calibrationDictionary[deviceId] = None
-
-    return calibrationDictionary[deviceId]

@@ -20,7 +20,7 @@ namespace Glovebox.Functions
 
         [FunctionName("SendSignalrMessage")]
         public static Task Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             [SignalR(HubName = "Enviromon")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {

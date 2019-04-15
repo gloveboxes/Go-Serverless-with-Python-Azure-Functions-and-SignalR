@@ -4,7 +4,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsStorage": "",
     "IoTHubConnectionString": "",
-    "PartitionKey": "Forbes",
+    "PartitionKey": "Sydney",
     "StorageConnectionString": "",
     "SignalrUrl": ""
   }
