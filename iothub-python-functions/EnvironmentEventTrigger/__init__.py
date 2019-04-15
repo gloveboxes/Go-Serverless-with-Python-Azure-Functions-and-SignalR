@@ -30,14 +30,20 @@ if not table_service.exists(calibrationTable):
 def main(event: func.EventHubEvent):
 
     messages = json.loads(event.get_body().decode('utf-8'))
-    stateUpdates = []
+    signalrUpdates = {}
 
     # Batch calibrate telemetry
     for telemetry in messages:
         try:
-            updateDeviceState(telemetry)
+            entity = updateDeviceState(telemetry)
+            if entity is not None:
+                signalrUpdates[entity.get('DeviceId')] = entity
+
         except Exception as err:
             logging.info('Exception occurred {0}'.format(err))
+
+    for item in signalrUpdates:
+        notifySignalR(signalrUpdates.get(item))
 
 
 def updateDeviceState(telemetry):
@@ -63,7 +69,7 @@ def updateDeviceState(telemetry):
         calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
-            break
+            return None
 
         try:
             if etag is not None:    # if etag found then record existed
@@ -72,19 +78,21 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
             else:
                 table_service.insert_entity(deviceStateTable, entity)
-            break
+            return entity
+
         except:
             pass
 
     else:
         logging.info('Failed to commit update for device {0}'.format(
             entity.get('DeviceId')))
+        return None
 
 
 def updateEntity(telemetry, entity, count):
     entity['PartitionKey'] = partitionKey
     entity['RowKey'] = telemetry.get('deviceId', telemetry.get('DeviceId'))
-    entity['DeviceId'] = entity['RowKey']
+    entity['DeviceId'] = entity.get('RowKey')
     entity['Geo'] = telemetry.get('geo', telemetry.get('Geo', 'Sydney'))
     entity['Humidity'] = telemetry.get('humidity', telemetry.get('Humidity'))
     entity['hPa'] = telemetry.get('pressure', telemetry.get(
@@ -98,11 +106,16 @@ def updateEntity(telemetry, entity, count):
     entity['etag'] = None
 
 
-def notifyClients(signalrUrl, telemetry):
-    headers = {'Content-type': 'application/json'}
-    r = requests.post(signalrUrl, data=json.dumps(
-        telemetry), headers=headers)
-    logging.info(r)
+def notifySignalR(telemetry):
+    try:
+        signalrMsg = {"DeviceId": telemetry.DeviceId, "Celsius": telemetry.Celsius,
+                      "Pressure": telemetry.hPa, "Humidity": telemetry.Humidity, "Count": telemetry.Count}
+
+        headers = {'Content-type': 'application/json'}
+        r = requests.post(signalrUrl, data=json.dumps(
+            signalrMsg), headers=headers)
+    except Exception as ex:
+        msg = ex
 
 
 def validateTelemetry(telemetry):

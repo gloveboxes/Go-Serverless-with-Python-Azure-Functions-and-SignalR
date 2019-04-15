@@ -15,13 +15,13 @@ using Newtonsoft.Json.Linq;
 
 namespace Glovebox.Functions
 {
-    public static class ScannedImagesQueue
+    public static class Enviromon
     {
 
         [FunctionName("SendSignalrMessage")]
         public static Task Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            [SignalR(HubName = "Classified")] IAsyncCollector<SignalRMessage> signalRMessages,
+            [SignalR(HubName = "Enviromon")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {
 
@@ -39,25 +39,23 @@ namespace Glovebox.Functions
         [FunctionName("negotiate")]
         public static SignalRConnectionInfo Negotiate(
             [HttpTrigger(AuthorizationLevel.Anonymous)]HttpRequest req,
-            [SignalRConnectionInfo(HubName = "Classified")]SignalRConnectionInfo connectionInfo)
+            [SignalRConnectionInfo(HubName = "Enviromon")]SignalRConnectionInfo connectionInfo)
         {
             return connectionInfo;
         }
-        
 
-        [FunctionName("getimagestate")]
-        public static Task ImageState(
+
+        [FunctionName("getdevicestate")]
+        public static Task DeviceState(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            [SignalR(HubName = "Classified")] IAsyncCollector<SignalRMessage> signalRMessages,
-            [Table("Classified", Connection = "StorageConnectionString")]  CloudTable testTable,
+            [SignalR(HubName = "Enviromon")] IAsyncCollector<SignalRMessage> signalRMessages,
+            [Table("DeviceState", Connection = "StorageConnectionString")]  CloudTable deviceStateTable,
             ILogger log)
         {
 
-            var querySegment = testTable.ExecuteQuerySegmentedAsync(new TableQuery<ClassifiedEntity>(), null);
+            var querySegment = deviceStateTable.ExecuteQuerySegmentedAsync(new TableQuery<EnvironmentEntity>(), null);
             var result = querySegment.Result.ToList();
             string json = JsonConvert.SerializeObject(result);
-
-            // string requestBody = new StreamReader(req.Body).ReadToEnd();
 
             return signalRMessages.AddAsync(
                 new SignalRMessage
@@ -68,10 +66,10 @@ namespace Glovebox.Functions
         }
     }
 
-    public class ClassifiedEntity : TableEntity
+    public class EnvironmentEntity : TableEntity
     {
+        public string DeviceId { get; set; }
+        public double Celsius { get; set; }
         public long Count { get; set; }
-        public string Tag { get; set; }
-        public double Probability { get; set; }
     }
 }

@@ -1,10 +1,10 @@
 {
     "bindings": [
         {
-            "name": "ImageScanner",
+            "name": "Environment",
             "type": "table",
             "connection": "StorageConnectionString",
-            "tableName": "ImageScanner",
+            "tableName": "DeviceState",
             "direction": "in"
         }
     ],
