@@ -69,7 +69,7 @@ def updateDeviceState(telemetry):
         calibrateTelemetry(entity)
 
         if not validateTelemetry(entity):
-            return None
+            break
 
         try:
             if etag is not None:    # if etag found then record existed
@@ -78,6 +78,7 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
             else:
                 table_service.insert_entity(deviceStateTable, entity)
+                
             return entity
 
         except:
@@ -86,7 +87,6 @@ def updateDeviceState(telemetry):
     else:
         logging.info('Failed to commit update for device {0}'.format(
             entity.get('DeviceId')))
-        return None
 
 
 def updateEntity(telemetry, entity, count):

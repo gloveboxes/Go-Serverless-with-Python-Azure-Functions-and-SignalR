@@ -4,13 +4,17 @@
 
 ## Solution overview
 
-![solution overview](./docs/resources/python-azure-functions-solution.png)
+![solution overview](./docs/resources/solution-architecture.png)
+
+## Developing Python Azure Functions
+
+To understand how to create your first Python Azure function then read the "[Create your first Python function in Azure ](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python)" article.
 
 ## Architectural Considerations
 
 ### Optimistic Concurrency
 
-I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Depending on the workload, Azure Functions can auto scale the number of instances running and there is a possibility of data corruption. I could have used a transactional data store, but for this solution, that would be overkill and expensive. So I have implemented Azure Storage/CosmosDB Optimistic Concurrency to deal with the possibility that two processes may attempt to update the same storage entity at the same time.
+I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Depending on the workload, Azure Functions can auto scale the number of instances running and there is a possibility of data corruption. I could have used a transactional data store, but for this solution, that would be overkill and expensive. So I have implemented Azure Storage/CosmosDB Optimistic Concurrency to deal with the possibility that two processes may attempt to update the same storage entity at the same time. This works well if there is a good spread of telemetry from a different device, but not so well if a lot of updates to the same entity.
 
 [Managing Concurrency in Microsoft Azure Storage](https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/)
 
@@ -58,7 +62,7 @@ def updateDeviceState(telemetry):
 
 ### Telemetry Calibration Optimization
 
-Rather than loading all the calibration data in when the Azure Function starts I lazy load calibration data into a Python dictionary.
+Rather than loading all the calibration data in with data binding when the Azure Function starts I lazy load calibration data into a Python dictionary.
 
 ```python
 def getCalibrationData(deviceId):
@@ -72,9 +76,26 @@ def getCalibrationData(deviceId):
     return calibrationDictionary[deviceId]
 ```
 
-## Developing Python Azure Functions
+### Telemetry Validation
 
-To understand how to create your first Python Azure function then read the "[Create your first Python function in Azure ](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python)" article.
+And all IoT solutions should be validating data at the very least to check within sensible ranges to allow for fault sensors and more.
+
+```python
+def validateTelemetry(telemetry):
+    temperature = telemetry.get('Celsius')
+    pressure = telemetry.get('hPa')
+    humidity = telemetry.get('Humidity')
+
+    if temperature is not None and not -40 <= temperature <= 80:
+        return False
+    if pressure is not None and not 600 <= pressure <= 1600:
+        return False
+    if humidity is not None and not 0 <= humidity <= 100:
+        return False
+    return True
+```
+
+
 
 ## Triggers and Bindings
 
