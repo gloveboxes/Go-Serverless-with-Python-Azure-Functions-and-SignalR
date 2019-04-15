@@ -51,7 +51,9 @@ def updateDeviceState(telemetry):
                     deviceStateTable, entity, if_match=etag)
             else:
                 table_service.insert_entity(deviceStateTable, entity)
-            break
+                
+            return entity
+
         except:
             pass
 
