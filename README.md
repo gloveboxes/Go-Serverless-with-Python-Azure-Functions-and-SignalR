@@ -2,7 +2,7 @@
 
 ## Solution overview
 
-![solution overview](./docs/resources/solution-architecture.png)
+![solution overview](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/solution-architecture.png)
 
 Follow me on [Twitter](https://twitter.com/dglover)
 
@@ -36,7 +36,7 @@ To understand how Python Azure Functions work then review the [Azure Functions P
 
 2. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available and included in this GitHub repository). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web dashboard.
 
-3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html) (Included in this GitHub repo). This is a Single Page Web App that is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is classified.html. Be sure to modify the "apiBaseUrl" url to point your instance of the Azure SignalR Azure Function you install.
+3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html) (Included in this GitHub repo). This is a Single Page Web App that is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is enviromon.html. Be sure to modify the "apiBaseUrl" url to point your instance of the Azure SignalR Azure Function you install.
 
 ## Architectural Considerations
 
@@ -94,7 +94,7 @@ def updateDeviceState(telemetry):
 
 ### Telemetry Calibration Optimization
 
-You can either calibrate data on the device or in the cloud. I prefer to calibrate cloud-side. The calibration data could be loaded with Azure Function Data Binding but prefer to lazy load the calibration data. There could be a lot of calibration data so it does not make sense to load it all at once when the function is triggered.
+You can either calibrate data on the device or in the cloud. I prefer to calibrate cloud-side. The calibration data could be loaded with Azure Function Data Binding but I prefer to lazy load the calibration data. There could be a lot of calibration data so it does not make sense to load it all at once when the function is triggered.
 
 ```python
 def getCalibrationData(deviceId):
@@ -293,4 +293,4 @@ From your web browser, navigate to https://your-start-web-site/enviromon.html
 
 The telemetry from the Raspberry Pi Simulator will be displayed on the dashboard.
 
-![dashboard](./docs/resources/dashboard.png)
+![dashboard](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/dashboard.png)
