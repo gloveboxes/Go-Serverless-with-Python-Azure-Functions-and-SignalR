@@ -131,7 +131,7 @@ def validateTelemetry(telemetry):
 
 This lab uses free of charge services on Azure. The following need to be set up:
 
-1. Azure IoT Hub and and Azure IoT Device
+1. Azure IoT Hub and Azure IoT Device
 2. Azure SignalR Service
 3. Deploy the Python Azure Function
 4. Deploy the SignalR .NET Core Azure Function
@@ -233,7 +233,7 @@ func azure functionapp list-functions <Your SignalR Function Name>
 
 Change to the directory where you cloned to the project to, the change to the iothub-python-functions directory, then start Visual Studio Code.
 
-From Terminal on linux and macOS, or Powershell on Windows.
+From Terminal on Linux and macOS, or Powershell on Windows.
 
 ```bash
 
