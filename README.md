@@ -12,8 +12,6 @@ Telemetry can be [routed](https://docs.microsoft.com/en-us/azure/iot-hub/tutoria
 
 This posting takes a slice of this scenario and is about the straight through [serverless](https://en.wikipedia.org/wiki/Serverless_computing) processing of telemetry from Azure IoT Hub, via Python Azure Functions and Azure SignalR for a near real-time dashboard.
 
-
-
 ### Azure Services
 
 The following Azure services are used in this solution and available in Free  tiers: [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=github-blog-dglover), [Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions?WT.mc_id=github-blog-dglover), [Azure SignalR](https://docs.microsoft.com/en-us/azure/azure-signalr?WT.mc_id=github-blog-dglover), [Azure Storage](https://docs.microsoft.com/en-us/azure/storage?WT.mc_id=github-blog-dglover), [Azure Storage Static Websites](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=github-blog-dglover)
@@ -137,7 +135,7 @@ The flow for Azure SignalR integration is as follows:
 
 1. The Web client makes a REST call to '**negotiate**', amongst other things, the SignalR '**Hubname**' is returned to the client.
 2. The Web client then makes a REST call to '**getdevicestate**', this HTTP Trigger retrieves the state for all devices from the Device State Table. The data is returned to the client via SignalR via the same '**Hubname**' that was returned from the call to '**negotiate**'.
-3. When new telemetry arrives via IoT Hub, the '**EnvironmentEventTrigger**' trigger fires, the telemetry is updated in the Device State table and a REST call is made to the '**SendSignalRMessage**' and telemetry is sent to all the SignalR clients listening on the '**Hubname**' channel. 
+3. When new telemetry arrives via IoT Hub, the '**EnvironmentEventTrigger**' trigger fires, the telemetry is updated in the Device State table and a REST call is made to the '**SendSignalRMessage**' and telemetry is sent to all the SignalR clients listening on the '**Hubname**' channel.
 
 ![](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/service-side-signalr.png)
 
@@ -154,7 +152,7 @@ This lab uses free of charge services on Azure. The following need to be set up:
 
 **While in Python Azure Functions are in preview they are available in limited locations. For now, 'westus', and 'westeurope'. I recommend you create all the project resources in one of these locations.**
 
-[Setting up the Raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-raspberry-pi-web-simulator-get-started&WT.mc_id=github-blog-dglover)
+[Setting up the Raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-raspberry-pi-web-simulator-get-started?WT.mc_id=github-blog-dglover)
 
 ![raspberry Pi Simulator](https://docs.microsoft.com/en-us/azure/iot-hub/media/iot-hub-raspberry-pi-web-simulator/3_banner.png?WT.mc_id=github-blog-dglover)
 
