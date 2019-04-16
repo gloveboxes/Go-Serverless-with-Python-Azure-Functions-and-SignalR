@@ -23,7 +23,7 @@ The following services are required and available in free tiers.
 
 ## Where to Start
 
-To understand how Python Azure Functions work then review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-functions-python-worker) guide. There is information the on the following topics:
+Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-functions-python-worker). There is information on the following topics:
 
 - [Create your first Python function](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-python?WT.mc_id=devto-blog-dglover)
 - [Developer guide](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-python?WT.mc_id=devto-blog-dglover)
@@ -31,13 +31,13 @@ To understand how Python Azure Functions work then review the [Azure Functions P
 - [Develop using VS Code](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-function-vs-code?WT.mc_id=devto-blog-dglover)
 - [Create a Python Function on Linux using a custom docker image](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-linux-custom-image?WT.mc_id=devto-blog-dglover)
 
-## Solution Components
+## Solution Components (included in this GitHub repo)
 
-1. Python Azure Functions (included in this GitHub repo). This Function processes batches or telemetry, calibrations the telemetry, and updates the Device State Azure Storage Table, and then passes the telemetry to the Azure SignalR service for near real-time web client update.
+1. Python Azure Function. This Azure Function processes batches of telemetry, then calibrations and validates telemetry, and updates the Device State Azure Storage Table, and then passes the telemetry to the Azure SignalR service for near real-time web client update.
 
-2. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available and included in this GitHub repository). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web dashboard.
+2. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web client dashboard.
 
-3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html) (Included in this GitHub repo). This is a Single Page Web App that is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is enviromon.html. Be sure to modify the "apiBaseUrl" url to point your instance of the Azure SignalR Azure Function you install.
+3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html). This Single Page Web App is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is enviromon.html. Be sure to modify the "apiBaseUrl" url in the web page javascript to point your instance of the SignalR Azure Function.
 
 ## Architectural Considerations
 
@@ -130,12 +130,12 @@ def validateTelemetry(telemetry):
 
 ## Azure SignalR Integration
 
-There is no Service-Side Azure SignalR SDK. To send telemetry to the Dashboard Web Client you need to call an HTTP Azure Function that is bound to the SignalR service. This SignalR Azure Function then sends the telemetry via SignalR as if the data was coming from a client-side app.
+There is no Service-Side Azure SignalR SDK. To send telemetry from the Event Hub Trigger Azure Function to the Dashboard Web Client you need to call an HTTP Azure Function that is bound to the SignalR service. This SignalR Azure Function then sends the telemetry via SignalR as if the data was coming from a client-side app.
 
 The flow for Azure SignalR integration is as follows:
 
 1. The Web client makes a REST call to '**negotiate**', amongst other things, the SignalR '**Hubname**' is returned to the client.
-2. The Web client then makes a REST call to '**getdevicestate**', this HTTP Trigger retrieves the state for all devices from from the Device State Table. The data is returned to the client via SignalR via the same '**Hubname**'.
+2. The Web client then makes a REST call to '**getdevicestate**', this HTTP Trigger retrieves the state for all devices from the Device State Table. The data is returned to the client via SignalR via the same '**Hubname**' that was returned from the call to '**negotiate**'.
 3. When new telemetry arrives via IoT Hub, the '**EnvironmentEventTrigger**' trigger fires, the telemetry is updated in the Device State table and a REST call is made to the '**SendSignalRMessage**' and telemetry is sent to all the SignalR clients listening on the '**Hubname**' channel. 
 
 ![](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/service-side-signalr.png)
@@ -222,7 +222,7 @@ code .
 
 ### Step 8: Deploy the SignalR .NET Core Azure Function
 
-1. Open a terminal windows in Visual Studio. From main menu, select View -> Terminal
+1. Open a terminal window in Visual Studio. From the main menu, select View -> Terminal
 2. Deploy the Azure Function
 
 ```bash
@@ -277,7 +277,7 @@ code .
 
 ### Step 11: Deploy the Python Azure Function
 
-1. Open a terminal windows in Visual Studio. From main menu, select View -> Terminal
+1. Open a terminal window in Visual Studio. From the main menu, select View -> Terminal
 2. Deploy the Azure Function
 
 ```bash
