@@ -1,23 +1,22 @@
 # Building a Serverless IoT Solution with Python Azure Functions and SignalR
 
-## Solution overview
+Follow me on [Twitter](https://twitter.com/dglover), [Project Source Code](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR), [Powerpoint Slides](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/blob/master/docs/Python%20Serverless%20with%20Azure%20Functions.pptx), [PDF Slides](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/blob/master/docs/Python%20Serverless%20with%20Azure%20Functions.pdf)
+
+## Solution Overview
+
+The following diagram overviews a typical IoT solution. [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover) is responsible for internet scale, secure, bi-directional communication with devices and backend services.
+
+Telemetry can be [routed](https://docs.microsoft.com/en-us/azure/iot-hub/tutorial-routing?WT.mc_id=devto-blog-dglover) by Azure IoT Hub to various services and also to storage in [Apache Avro](https://avro.apache.org/docs/current/) or JSON format for purposes such as audit, integration or driving machine learning processes.
+
+This posting takes a slice of this scenario and is about the straight through [serverless](https://en.wikipedia.org/wiki/Serverless_computing) processing of telemetry from Azure IoT Hub, via Python Azure Functions and Azure SignalR for a near real-time dashboard.
 
 ![solution overview](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/solution-architecture.png)
 
-- Follow me on [Twitter](https://twitter.com/dglover)
-- [Project Source Code](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR)
-- [Powerpoint Slides](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/blob/master/docs/Python%20Serverless%20with%20Azure%20Functions.pptx)
-- [PDF Slides](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/blob/master/docs/Python%20Serverless%20with%20Azure%20Functions.pdf)
-
 ### Azure Services
 
-The following services are required and available in free tiers.
+The following Azure services are used in this solution and available in Free  tiers: [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover), [Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions?WT.mc_id=devto-blog-dglover), [Azure SignalR](https://docs.microsoft.com/en-us/azure/azure-signalr?WT.mc_id=devto-blog-dglover), [Azure Storage](https://docs.microsoft.com/en-us/azure/storage?WT.mc_id=devto-blog-dglover), [Azure Storage Static Websites](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=devto-blog-dglover)
 
-1. [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover)
-2. [Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions?WT.mc_id=devto-blog-dglover)
-3. [Azure SignalR](https://docs.microsoft.com/en-us/azure/azure-signalr?WT.mc_id=devto-blog-dglover)
-4. [Azure Storage](https://docs.microsoft.com/en-us/azure/storage?WT.mc_id=devto-blog-dglover)
-5. [Azure Storage Static Websites](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=devto-blog-dglover)
+You can sign up for a [Free Azure Account](https://azure.microsoft.com/en-au/free/), if you are a student then be sure to sign up for [Azure for Students](https://azure.microsoft.com/en-au/free/students/), no credit card required.
 
 ## Developing Python Azure Functions
 
@@ -37,7 +36,7 @@ Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-
 
 2. Azure SignalR .NET Core Azure Function (Written in C# until a Python SignalR binding available). This Azure Function is responsible for passing the telemetry to the SignalR service to send to SignalR Web client dashboard.
 
-3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html). This Single Page Web App is hosted on Azure Storage as a Static Website. So it too is serverless. The page used for this sample is enviromon.html. Be sure to modify the "apiBaseUrl" url in the web page javascript to point your instance of the SignalR Azure Function.
+3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html). This Single Page Web App is hosted on Azure Storage as a Static Website. So it too is serverless.
 
 ## Architectural Considerations
 
@@ -45,9 +44,9 @@ Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-
 
 First up, it is useful to understand [Event Hub Trigger Scaling](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-iot#trigger---scaling?WT.mc_id=devto-blog-dglover) and how additional function instances can be started to process events.
 
-I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2/), to check if another function instance has changed the entity before attempting to do an update/merge.
+I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2/) to check if another function instance has changed the entity before attempting to do an update/merge.
 
-The 'updateDeviceState' first checks to see if the entity is already in the storage table. If the entity exists the 'etag' is used by the call to merge_entity. The call to merge_entity succeeds if the etag matches the entity in storage.
+The 'updateDeviceState' first checks to see if the entity is already in the storage table. If the entity exists the 'etag' is used by the call to merge_entity. The call to merge_entity succeeds if the etag matches the etag of the entity in storage at merge time.
 
 ```python
 def updateDeviceState(telemetry):
@@ -111,7 +110,7 @@ def getCalibrationData(deviceId):
 
 ### Telemetry Validation
 
-IoT solutions should be validating data to check telemetry is within sensible ranges to allow for fault sensors or more.
+IoT solutions should validate telemetry to ensure data is within sensible ranges to allow for faulty sensors.
 
 ```python
 def validateTelemetry(telemetry):
@@ -130,7 +129,7 @@ def validateTelemetry(telemetry):
 
 ## Azure SignalR Integration
 
-There is no Service-Side Azure SignalR SDK. To send telemetry from the Event Hub Trigger Azure Function to the Dashboard Web Client you need to call an HTTP Azure Function that is bound to the SignalR service. This SignalR Azure Function then sends the telemetry via SignalR as if the data was coming from a client-side app.
+There is no Service-Side Azure SignalR SDK. To send telemetry from the Event Hub Trigger Azure Function to the Dashboard Web Client you need to call a HTTP Azure Function that is bound to the SignalR service. This SignalR Azure Function then sends the telemetry via SignalR as if the data was coming from a client-side app.
 
 The flow for Azure SignalR integration is as follows:
 
@@ -289,6 +288,8 @@ func azure functionapp publish enviromon-python --publish-local-settings --build
 The Dashboard project contains the Static Website project.
 
 Follow the guide for [Static website hosting in Azure Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=devto-blog-dglover).
+
+The page used for this sample is enviromon.html. Be sure to modify the "apiBaseUrl" url in the web page javascript to point your instance of the SignalR Azure Function.
 
 Copy the contents of the dashboard project to the static website.
 
