@@ -16,7 +16,7 @@ This posting takes a slice of this scenario and is about the straight through [s
 
 The following Azure services are used in this solution and available in Free  tiers: [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=github-blog-dglover), [Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions?WT.mc_id=github-blog-dglover), [Azure SignalR](https://docs.microsoft.com/en-us/azure/azure-signalr?WT.mc_id=github-blog-dglover), [Azure Storage](https://docs.microsoft.com/en-us/azure/storage?WT.mc_id=github-blog-dglover), [Azure Storage Static Websites](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=github-blog-dglover)
 
-You can sign up for a [Free Azure Account](https://azure.microsoft.com/en-au/free/), if you are a student then be sure to sign up for [Azure for Students](https://azure.microsoft.com/en-au/free/students/), no credit card required.
+You can sign up for a [Free Azure Account](https://azure.microsoft.com/en-au/free?WT.mc_id=github-blog-dglover), if you are a student then be sure to sign up for [Azure for Students](https://azure.microsoft.com/en-au/free/students?WT.mc_id=github-blog-dglover), no credit card required.
 
 ## Developing Python Azure Functions
 
@@ -44,7 +44,7 @@ Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-
 
 First up, it is useful to understand [Event Hub Trigger Scaling](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-iot#trigger---scaling?WT.mc_id=github-blog-dglover) and how additional function instances can be started to process events.
 
-I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2/) to check if another function instance has changed the entity before attempting to do an update/merge.
+I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2?WT.mc_id=github-blog-dglover) to check if another function instance has changed the entity before attempting to do an update/merge.
 
 The 'updateDeviceState' first checks to see if the entity is already in the storage table. If the entity exists the 'etag' is used by the call to merge_entity. The call to merge_entity succeeds if the etag matches the etag of the entity in storage at merge time.
 
