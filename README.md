@@ -4,13 +4,15 @@ Follow me on [Twitter](https://twitter.com/dglover), [Project Source Code](https
 
 ## Solution Overview
 
-The following diagram overviews a typical IoT solution. [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover) is responsible for internet scale, secure, bi-directional communication with devices and backend services.
+![solution overview](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/solution-architecture.png)
+
+This solution diagram overviews a typical IoT solution. [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub?WT.mc_id=devto-blog-dglover) is responsible for internet scale, secure, bi-directional communication with devices and backend services.
 
 Telemetry can be [routed](https://docs.microsoft.com/en-us/azure/iot-hub/tutorial-routing?WT.mc_id=devto-blog-dglover) by Azure IoT Hub to various services and also to storage in [Apache Avro](https://avro.apache.org/docs/current/) or JSON format for purposes such as audit, integration or driving machine learning processes.
 
 This posting takes a slice of this scenario and is about the straight through [serverless](https://en.wikipedia.org/wiki/Serverless_computing) processing of telemetry from Azure IoT Hub, via Python Azure Functions and Azure SignalR for a near real-time dashboard.
 
-![solution overview](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/solution-architecture.png)
+
 
 ### Azure Services
 
