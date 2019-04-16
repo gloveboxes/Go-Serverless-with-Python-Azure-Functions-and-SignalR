@@ -128,6 +128,18 @@ def validateTelemetry(telemetry):
     return True
 ```
 
+## Azure SignalR Integration
+
+There is no Service-Side Azure SignalR SDK. To send telemetry to the Dashboard Web Client you need to call an HTTP Azure Function that is bound to the SignalR service. This SignalR Azure Function then sends the telemetry via SignalR as if the data was coming from a client-side app.
+
+The flow for Azure SignalR integration is as follows:
+
+1. The Web client makes a HTTP call to '**negotiate**', amongst other things, the SignalR '**Hubname**' is returned to the client.
+2. The Web client then makes a HTTP call to '**getdevicestate**', this HTTP Trigger retrieves the state for all devices from from the Device State Table. The data is returned to the client via SignalR via the same '**Hubname**'.
+3. When new telemetry arrives via IoT Hub, the '**EnvironmentEventTrigger**' trigger fires, the telemetry is updated in the Device State table and a REST call is made to the '**SendSignalRMessage**' and telemetry is sent to all the SignalR clients listening on the '**Hubname**' channel. 
+
+![](./docs/resources/service-side-signalr.png)
+
 ## Set Up Overview
 
 This lab uses free of charge services on Azure. The following need to be set up:
