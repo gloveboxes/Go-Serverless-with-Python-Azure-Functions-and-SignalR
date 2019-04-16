@@ -138,7 +138,7 @@ The flow for Azure SignalR integration is as follows:
 2. The Web client then makes a REST call to '**getdevicestate**', this HTTP Trigger retrieves the state for all devices from from the Device State Table. The data is returned to the client via SignalR via the same '**Hubname**'.
 3. When new telemetry arrives via IoT Hub, the '**EnvironmentEventTrigger**' trigger fires, the telemetry is updated in the Device State table and a REST call is made to the '**SendSignalRMessage**' and telemetry is sent to all the SignalR clients listening on the '**Hubname**' channel. 
 
-![](./docs/resources/service-side-signalr.png)
+![](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/service-side-signalr.png)
 
 ## Set Up Overview
 
