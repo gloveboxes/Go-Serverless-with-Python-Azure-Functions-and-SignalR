@@ -4,9 +4,10 @@
 
 ![solution overview](https://raw.githubusercontent.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR/master/docs/resources/solution-architecture.png)
 
-Follow me on [Twitter](https://twitter.com/dglover)
-
-[Project Source Code](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR)
+- Follow me on [Twitter](https://twitter.com/dglover)
+- [Project Source Code](https://github.com/gloveboxes/Go-Serverless-with-Python-Azure-Functions-and-SignalR)
+- Powerpoint Slides
+- PDF Slides
 
 ### Azure Services
 
