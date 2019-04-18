@@ -118,12 +118,12 @@
         };
 
         var addLabel = function (data) {
-            var a = labels.indexOf(data.DeviceId);
+            var a = labels.indexOf(data.deviceId);
             if (a == -1) {
-                labels.push(data.DeviceId);
+                labels.push(data.deviceId);
                 a = labels.length - 1;
                 columns[a] = [];
-                columns[a].push(data.DeviceId);
+                columns[a].push(data.deviceId);
             }
             return a;
         };
@@ -180,10 +180,10 @@
             var e = document.getElementById('lastupdated');
             e.innerText = Date();
 
-            appendColumn(pos, labels[pos], roundToOne(message.Celsius));
+            appendColumn(pos, labels[pos], roundToOne(message.temperature));
 
             // if (incomingData.timestamp) {
-            //   appendColumn(pos, labels[pos], roundToOne(incomingData.celsius));
+            //   appendColumn(pos, labels[pos], roundToOne(incomingData.temperature));
             // } else {
             //   console.log('bad timestamp is skipped');
             // }

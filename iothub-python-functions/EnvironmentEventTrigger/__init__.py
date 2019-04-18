@@ -115,8 +115,8 @@ def updateEntity(telemetry, entity, count):
 
 def notifySignalR(telemetry):
     try:
-        signalrMsg = {"DeviceId": telemetry.DeviceId, "Celsius": telemetry.Celsius,
-                      "Pressure": telemetry.hPa, "Humidity": telemetry.Humidity, "Count": telemetry.Count}
+        signalrMsg = {"deviceId": telemetry.DeviceId, "temperature": telemetry.Celsius,
+                      "pressure": telemetry.hPa, "humidity": telemetry.Humidity, "count": telemetry.Count}
 
         headers = {'Content-type': 'application/json'}
         r = requests.post(signalrUrl, data=json.dumps(
