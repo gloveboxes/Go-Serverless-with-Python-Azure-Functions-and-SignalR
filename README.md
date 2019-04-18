@@ -38,7 +38,7 @@ Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-
 
 3. [Web Dashboard](https://enviro.z8.web.core.windows.net/enviromon.html). This Single Page Web App is hosted on Azure Storage as a Static Website. So it too is serverless.
 
-## Architectural Considerations
+## Design Considerations
 
 ### Optimistic Concurrency
 
@@ -101,7 +101,9 @@ def updateDeviceState(telemetry):
             return entity
 
         except:
-            pass
+            interval = calcExponentialFallback(mergeRetry)
+            logging.info("Optimistic Consistency Backoff interval {0}".format(interval))
+            time.sleep(interval)
 
     else:
         logging.info('Failed to commit update for device {0}'.format(
