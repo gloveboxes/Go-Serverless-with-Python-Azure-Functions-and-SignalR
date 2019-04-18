@@ -4,6 +4,8 @@ from azure.cosmosdb.table.tableservice import TableService
 import requests
 import json
 import os
+import random
+import time
 from ..SharedCode import calibrate
 
 # https://azure.microsoft.com/en-au/blog/managing-concurrency-in-microsoft-azure-storage-2/
@@ -21,6 +23,10 @@ if not table_service.exists(deviceStateTable):
     table_service.create_table(deviceStateTable)
 
 calibrator = calibrate.Calibrate(table_service, calibrationTable, partitionKey)
+
+# Optimistic Concurrency Tuning Parameters
+occBase = 40  # 40 milliseconds
+occCap = 1000  # 1000 milliseconds
 
 
 def main(event: func.EventHubEvent):
@@ -78,12 +84,17 @@ def updateDeviceState(telemetry):
             return entity
 
         except:
-            pass
+            interval = calcExponentialFallback(mergeRetry)
+            logging.info("Optimistic Consistency Backoff interval {0}".format(interval))
+            time.sleep(interval)
 
     else:
         logging.info('Failed to commit update for device {0}'.format(
             entity.get('DeviceId')))
 
+def calcExponentialFallback(attempt):
+    base = occBase * pow(2, attempt)
+    return random.randint(occBase, min(occCap, base)) / 1000.0
 
 def updateEntity(telemetry, entity, count):
     entity['PartitionKey'] = partitionKey

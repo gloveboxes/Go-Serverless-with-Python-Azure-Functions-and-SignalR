@@ -8,7 +8,7 @@
       "eventHubName": "glovebox-iothub",
       "connection": "IoTHubConnectionString",
       "cardinality": "many",
-      "consumerGroup": "environment"
+      "consumerGroup": "$Default"
     }
   ]
 }

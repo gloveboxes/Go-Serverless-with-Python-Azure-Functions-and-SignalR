@@ -44,7 +44,23 @@ Review the [Azure Functions Python Worker Guide](https://github.com/Azure/azure-
 
 First up, it is useful to understand [Event Hub Trigger Scaling](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-iot#trigger---scaling?WT.mc_id=github-blog-dglover) and how additional function instances can be started to process events.
 
-I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. Rather than using a transactional store, I have implemented [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2?WT.mc_id=github-blog-dglover) to check if another function instance has changed the entity before attempting to do an update/merge.
+I wanted to maintain a count in the Device State table of the number of times a device had sent telemetry. The solution implements [Azure Storage/CosmosDB Optimistic Concurrency](https://azure.microsoft.com/en-us/blog/managing-concurrency-in-microsoft-azure-storage-2?WT.mc_id=github-blog-dglover).
+
+[Optimistic Concurrency (OCC)](https://en.wikipedia.org/wiki/Optimistic_concurrency_control) assumes that multiple transactions can frequently complete without interfering with each other. While running, transactions use data resources without acquiring locks on those resources. Before committing, each transaction verifies that no other transaction has modified the data it has read. OCC is generally used in environments with low data contention.
+
+If there are multiple functions instances updating and there is a clash, I have implemented Exponential Backoff and added a random factor to allow for retry.
+
+    Pseudo code: random(occBase, min(occCap, occBase * 2 ^ attempt))
+
+```python
+def calcExponentialFallback(attempt):
+    base = occBase * pow(2, attempt)
+    return random.randint(occBase, min(occCap, base)) / 1000.0
+```
+
+From my limited testing Exponential Backoff was effective.
+
+## Telemetry Processing
 
 The 'updateDeviceState' first checks to see if the entity is already in the storage table. If the entity exists the 'etag' is used by the call to merge_entity. The call to merge_entity succeeds if the etag matches the etag of the entity in storage at merge time.
 
